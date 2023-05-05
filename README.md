@@ -33,9 +33,9 @@
 
 ### Subgraph
 
-#### Raffle Data
+#### 1. Raffle Data
 
-1. allows the API consumer to get each raffle round's data, including:
+- allows the API consumer to get each raffle round's data, including:
 
     a. winning tokenIds & the holder addresses 
 
@@ -47,8 +47,9 @@
 
     ```NOTE: this requirement(d) is ambiguous as NFTs are transferrable```
 
-####  Mymetashark TokenId Data  
-1. allows the API consumer to get each mymetashark tokenId's records of interaction with the raffle smart contract, including: 
+#### 2. Mymetashark TokenId Data  
+- allows the API consumer to get each mymetashark tokenId's records of interaction with the raffle smart contract, including: 
+
     a. raffles in which this tokenId has participated
 
     b. for each round of raffle this tokenId has particiapted in, the ticket numbers associated with this tokenId and ticket numbers (if any) that won the rewards
