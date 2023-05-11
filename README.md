@@ -1,6 +1,9 @@
 # Requirements
 
 ### Smart Contract:
+
+All costs associated with deploying smart contracts to the Ethereum blockchain shall be paid for by the project owner.
+
 1. Admin functions
 
     a. ```SetupRaffle(startTime, duration, ticketInterval, winnerCount)```
