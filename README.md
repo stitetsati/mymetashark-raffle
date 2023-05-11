@@ -43,7 +43,7 @@
 
     c. number of tickets issued in each raffle
 
-    d. number of distinct wallet addresses participated in each raffle (recorded at the time of contract interaction, subsequent effects of NFT transfers won't be included.
+    d. number of distinct wallet addresses participated in each raffle (recorded at the time of contract interaction, subsequent effects of NFT transfers won't be included.)
 
 #### 2. Mymetashark TokenId Data  
 - allows the API consumer to get each mymetashark tokenId's records of interaction with the raffle smart contract, including: 
