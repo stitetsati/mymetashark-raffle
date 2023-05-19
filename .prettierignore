@@ -1,0 +1,4 @@
+# Ignore artifacts:
+lib
+typechain-types
+artifacts
