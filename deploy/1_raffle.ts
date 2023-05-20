@@ -6,7 +6,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
   const { deploy } = deployments;
   const { deployer, mymetashark, linkToken, vrfV2Wrapper } = await getNamedAccounts();
-  const gasLimit = 600000;
+  const gasLimit = 200000;
   let params = [mymetashark, linkToken, vrfV2Wrapper, gasLimit];
   let raffle = await deploy(`MyMetaSharkRaffle`, {
     from: deployer,
