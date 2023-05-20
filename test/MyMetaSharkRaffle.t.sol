@@ -4,17 +4,24 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import "./mocks/NFT.sol";
+import "./mocks/ERC20.sol";
+import "./mocks/VRFV2Wrapper.sol";
 import "../src/MyMetaSharkRaffle.sol";
 
 contract MyMetaSharkRaffleTest is Test {
     MyMetaSharkRaffle raffleContract;
     NFT shark;
+    Token link;
+    VRFV2Wrapper v2Wrapper;
+
     address owner = 0x0000000000000000000000000000000000000001;
 
     constructor() {
         vm.startPrank(owner);
+        link = new Token();
         shark = new NFT();
-        raffleContract = new MyMetaSharkRaffle(address(shark));
+        v2Wrapper = new VRFV2Wrapper();
+        raffleContract = new MyMetaSharkRaffle(address(shark), address(link), address(v2Wrapper), 0);
         vm.stopPrank();
     }
 
@@ -294,7 +301,7 @@ contract MyMetaSharkRaffleTest is Test {
         assertEq(raffleContract.getRaffle(raffleContract.currentRaffleIndex()).ticketsClaimed, ticketsToClaim);
     }
 
-    function testClaimingMultipleTicketsWithAutoExplore() external {
+    function testClaimingMultipleTicketsWithAutoExplore() public {
         MyMetaSharkRaffle.Raffle memory raffle = setupRaffle();
         uint256[] memory tokenIds = new uint256[](1);
         uint256 tokenId = 0;
@@ -314,5 +321,97 @@ contract MyMetaSharkRaffleTest is Test {
             assertEq(tickets[i], i);
         }
         assertEq(raffleContract.getRaffle(raffleContract.currentRaffleIndex()).ticketsClaimed, ticketsToClaim);
+    }
+
+    function testConcludeRaffleReverts() external {
+        vm.expectRevert(bytes("NoRaffles: No raffles have been setup"));
+        raffleContract.concludeCurrentRaffle();
+
+        testClaimingMultipleTicketsWithAutoExplore();
+        MyMetaSharkRaffle.Raffle memory raffle = raffleContract.getRaffle(raffleContract.currentRaffleIndex());
+        vm.warp(raffle.startTime + raffle.duration - 1);
+        vm.expectRevert(bytes("RaffleNotEnded: Raffle has not ended"));
+        raffleContract.concludeCurrentRaffle();
+        // successfully conclude raffle
+        vm.warp(raffle.startTime + raffle.duration + 1);
+        raffleContract.concludeCurrentRaffle();
+        // conclude again
+        vm.expectRevert(bytes("VRFAlreadyRequested: VRF has already been requested"));
+        raffleContract.concludeCurrentRaffle();
+    }
+
+    function testConcludeSuccessfully() public {
+        testClaimingMultipleTicketsWithAutoExplore();
+        MyMetaSharkRaffle.Raffle memory raffle = raffleContract.getRaffle(raffleContract.currentRaffleIndex());
+        vm.warp(raffle.startTime + raffle.duration);
+        raffleContract.concludeCurrentRaffle();
+        raffle = raffleContract.getRaffle(raffleContract.currentRaffleIndex());
+        // verify state changes
+        assertEq(raffle.randomNumber, 0);
+        bool isEstimatedExpenseZero = raffle.vrfRequestEstimatedExpense == 0;
+        assertEq(isEstimatedExpenseZero, false);
+        bool isRequestIdZero = raffle.vrfRequestId == 0;
+        assertEq(isRequestIdZero, false);
+    }
+
+    function testFulfillrandomness() external {
+        testConcludeSuccessfully();
+        MyMetaSharkRaffle.Raffle memory raffle = raffleContract.getRaffle(raffleContract.currentRaffleIndex());
+        v2Wrapper.fulfillRandomness(raffle.vrfRequestId, address(raffleContract));
+
+        // verify state changes
+        // current raffle index is incremented
+        assertEq(raffleContract.currentRaffleIndex(), 1);
+
+        raffle = raffleContract.getRaffle(raffleContract.currentRaffleIndex() - 1);
+        // random number is set
+        bool isRandomNumberZero = raffle.randomNumber == 0;
+        assertEq(isRandomNumberZero, false);
+
+        // winners can be drawn
+        uint256[] memory winners = raffleContract.getRaffleWinners(raffleContract.currentRaffleIndex() - 1);
+        assertEq(winners.length, raffle.winnerCount);
+    }
+
+    function testDrawingWinnerWhenTicketClaimedLargerThanWinnerCount() external {
+        uint256 startTime = block.timestamp + 1;
+        uint256 duration = 1 days;
+        uint256 ticketInterval = 30 minutes;
+        uint256 winnerCount = 10;
+        vm.startPrank(owner);
+        raffleContract.setupRaffle(startTime, duration, ticketInterval, winnerCount);
+        MyMetaSharkRaffle.Raffle memory raffle = raffleContract.getRaffle(0);
+
+        uint256[] memory tokenIds = new uint256[](1);
+        uint256 tokenId = 0;
+        tokenIds[0] = tokenId;
+        vm.warp(raffle.startTime);
+
+        uint256 ticketsToClaim = 24;
+        raffleContract.explore(tokenIds);
+        for (uint256 i = 0; i < ticketsToClaim; i++) {
+            vm.warp(block.timestamp + raffle.ticketInterval);
+            raffleContract.claimTicket(tokenIds);
+        }
+        vm.warp(raffle.startTime + raffle.duration);
+        raffleContract.concludeCurrentRaffle();
+        raffle = raffleContract.getRaffle(0);
+        vm.warp(raffle.startTime + raffle.duration + 1);
+        v2Wrapper.fulfillRandomness(raffle.vrfRequestId, address(raffleContract));
+
+        uint256[] memory winners = raffleContract.getRaffleWinners(raffleContract.currentRaffleIndex() - 1);
+        assertEq(winners.length, raffle.winnerCount);
+        for (uint256 i = 0; i < winners.length; i++) {
+            assertTrue(winners[i] < raffle.ticketsClaimed);
+        }
+    }
+
+    function testGetRaffleWinners() external {
+        vm.expectRevert(bytes("InvalidRaffleIndex: Raffle does not exist"));
+        raffleContract.getRaffleWinners(1);
+
+        testConcludeSuccessfully();
+        vm.expectRevert(bytes("RaffleNotConcluded: Raffle has not been concluded"));
+        raffleContract.getRaffleWinners(0);
     }
 }
