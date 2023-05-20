@@ -357,6 +357,7 @@ contract MyMetaSharkRaffleTest is Test {
     function testFulfillrandomness() external {
         testConcludeSuccessfully();
         MyMetaSharkRaffle.Raffle memory raffle = raffleContract.getRaffle(raffleContract.currentRaffleIndex());
+
         v2Wrapper.fulfillRandomness(raffle.vrfRequestId, address(raffleContract));
 
         // verify state changes

@@ -12,6 +12,18 @@ const config: HardhatUserConfig = {
     deployer: {
       default: 0,
     },
+    mymetashark: {
+      mainnet: "0x812Ae1DB094658177582A96b8dd970870165Fe80",
+      goerli: "0xB89eFb9D4E0019af9F07377E51a125865Da6c149",
+    },
+    linkToken: {
+      mainnet: "0x514910771AF9Ca656af840dff83E8264EcF986CA",
+      goerli: "0x326C977E6efc84E512bB9C30f76E30c160eD06FB",
+    },
+    vrfV2Wrapper: {
+      mainnet: "0x5A861794B927983406fCE1D062e00b9368d97Df6",
+      goerli: "0x708701a1DfF4f478de54383E49a627eD4852C816",
+    },
   },
   solidity: {
     compilers: [
