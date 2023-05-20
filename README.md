@@ -22,7 +22,7 @@ All costs associated with deploying smart contracts to the Ethereum blockchain s
         
         2. By the time the user hits 'explore', the duration of time between the action and the end of the raffle is less than the ticket interval; i.e. raffle ends at 1pm; ticket interval is 30 minutes; the user hits 'explore' at 12:31pm. 
 
-    b. ```Claim(tokenIds[])```
+    b. ```Claim(tokenIds[])``` :white_check_mark:
 
     - Allows the mymetashark holders who has 'explored' and 'ticket interval' has passed. 
     - The tokenIds that have satisfied the aforementioned criteria will have one ticket attached to them, making them eligible for the lottery reward by the end of the raffle.
