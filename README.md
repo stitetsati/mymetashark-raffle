@@ -57,3 +57,16 @@ All costs associated with deploying smart contracts to the Ethereum blockchain s
     
         
         
+# Documentation
+
+## Randomness
+
+This section explains how winners are drawn given a random number provided by Chainlink's VRF.
+
+Assuming that the number of winners that is to be drawn for the current round of raffle is 20, and the total number of tickets are 120 (i.e. ticket number 0 - 119), we will expand the VRF's random value by keccak256 hashing the abi.encode(randomValue, i) where i is 0...19 and then modulo the result with 120, this will create 20 random numbers in the range of 0...119.
+
+If the same number is drawn as a winning number, we will use [linear probing](https://en.wikipedia.org/wiki/Linear_probing) to solve the collision.
+
+In addition, the for-loop that executes the randomness drawing operation is not implemented in the fulfillRandomness function; the function simply stores the VRF result so that the tx does not consume a tremendous amount of gas when the number of winners that is to be drawn is forbiddingly large. 
+
+Instead, a view function is implemented in the smart contract for the front end to query whether a given number has won in a particular round of raffle, making it verifiably transparent to all. The same mechanism is also implemented in the subgraph for querying all winning numbers for a given round of raffles.
