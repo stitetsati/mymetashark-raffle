@@ -6,11 +6,11 @@ All costs associated with deploying smart contracts to the Ethereum blockchain s
 
 1. Admin functions
 
-    a. ```SetupRaffle(startTime, duration, ticketInterval, winnerCount)```
+    a. ```SetupRaffle(startTime, duration, ticketInterval, winnerCount)``` :white_check_mark:
     - Allows the admin to set up the next raffle details, including start time, duration, ticket interval, winner count
 2. User Functions 
 
-    a. ```Explore(tokenIds[])```
+    a. ```Explore(tokenIds[])``` :white_check_mark:
 
     - Allows the mymetashark holders to join the current raffle ticket-collection process(Explore & Claim). 
     
