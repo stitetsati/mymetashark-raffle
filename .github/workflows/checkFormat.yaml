@@ -1,0 +1,18 @@
+name: Run Prettier Check
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+jobs:
+  test:
+    name: Run prettier check on Ubuntu with Node
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+      - name: Install
+        run: npm install
+      - name: Check format
+        run: npm run checkFormat 
