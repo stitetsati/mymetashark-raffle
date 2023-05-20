@@ -1,5 +1,10 @@
 // SPDX-License-Identifier: MIT
 
+// /\ "-./  \/\ \_\ \/\ "-./  \/\  ___/\__  _/\  __ \/\  ___\/\ \_\ \/\  __ \/\  == \/\ \/ /
+// \ \ \-./\ \ \____ \ \ \-./\ \ \  __\/_/\ \\ \  __ \ \___  \ \  __ \ \  __ \ \  __<\ \  _"-.
+//  \ \_\ \ \_\/\_____\ \_\ \ \_\ \_____\\ \_\\ \_\ \_\/\_____\ \_\ \_\ \_\ \_\ \_\ \_\ \_\ \_\
+//   \/_/  \/_/\/_____/\/_/  \/_/\/_____/ \/_/ \/_/\/_/\/_____/\/_/\/_/\/_/\/_/\/_/ /_/\/_/\/_/
+
 pragma solidity ^0.8.4;
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
@@ -28,6 +33,7 @@ library Array {
 
 contract MyMetaSharkRaffle is IMyMetaSharkRaffle, VRFV2WrapperConsumerBase, Ownable {
     using Array for uint256[];
+
     event TicketClaimed(uint256 indexed sharkTokenId, uint256 indexed raffleIndex, uint256 ticketNumber);
     struct Raffle {
         uint256 startTime;
@@ -56,6 +62,13 @@ contract MyMetaSharkRaffle is IMyMetaSharkRaffle, VRFV2WrapperConsumerBase, Owna
         myMetaShark = _myMetaShark;
     }
 
+    /// ADMIN FUNCTIONS
+
+    /// @notice set up a new raffle
+    /// @param startTime start time of the raffle
+    /// @param duration duration of the raffle
+    /// @param ticketInterval interval between each ticket claim
+    /// @param winnerCount number of winners
     function setupRaffle(uint256 startTime, uint256 duration, uint256 ticketInterval, uint256 winnerCount) external onlyOwner {
         require(startTime > block.timestamp, "InvalidStartTime: Must be in the future");
         require(ticketInterval > 0, "InvalidTicketInterval: Must be greater than 0");
@@ -71,14 +84,14 @@ contract MyMetaSharkRaffle is IMyMetaSharkRaffle, VRFV2WrapperConsumerBase, Owna
         raffles.push(Raffle(startTime, duration, ticketInterval, winnerCount, 0, 0, 0, 0));
     }
 
-    function getRaffle(uint256 raffleIndex) external view returns (Raffle memory) {
-        return raffles[raffleIndex];
-    }
+    ////////////////////////////////
+    ////////////////////////////////
+    ////// EXTERNAL FUNCTIONS //////
+    ////////////////////////////////
+    ////////////////////////////////
 
-    function getTickets(uint256 sharkTokenId, uint256 raffleIndex) external view returns (uint256[] memory) {
-        return sharkTokenIdToRaffleTicketNumbers[sharkTokenId][raffleIndex];
-    }
-
+    /// @notice set MyMetaShark NFT tokens out for exploration
+    /// @param tokenIds token ids to be set out to explore
     function explore(uint256[] calldata tokenIds) external {
         require(raffles.length > currentRaffleIndex, "NoRaffles: No raffles have been setup");
         Raffle storage currentRaffle = raffles[currentRaffleIndex];
@@ -104,6 +117,8 @@ contract MyMetaSharkRaffle is IMyMetaSharkRaffle, VRFV2WrapperConsumerBase, Owna
         }
     }
 
+    /// @notice claim ticket for MyMetaShark NFT tokens
+    /// @param tokenIds token ids to claim ticket for
     function claimTicket(uint256[] calldata tokenIds) external {
         require(raffles.length > currentRaffleIndex, "NoRaffles: No raffles have been setup");
         require(tokenIds.length > 0, "InvalidTokenIds: Must have at least one token id");
@@ -128,14 +143,8 @@ contract MyMetaSharkRaffle is IMyMetaSharkRaffle, VRFV2WrapperConsumerBase, Owna
         }
     }
 
-    function _claimTicket(uint256 tokenId) internal {
-        Raffle storage currentRaffle = raffles[currentRaffleIndex];
-        uint256 ticketNumber = currentRaffle.ticketsClaimed;
-        sharkTokenIdToRaffleTicketNumbers[tokenId][currentRaffleIndex].push(ticketNumber);
-        emit TicketClaimed(tokenId, currentRaffleIndex, ticketNumber);
-        currentRaffle.ticketsClaimed += 1;
-    }
-
+    /// @notice conclude current raffle
+    /// @dev can only be called after raffle has ended
     function concludeCurrentRaffle() external {
         require(raffles.length > currentRaffleIndex, "NoRaffles: No raffles have been setup");
         Raffle storage currentRaffle = raffles[currentRaffleIndex];
@@ -147,29 +156,30 @@ contract MyMetaSharkRaffle is IMyMetaSharkRaffle, VRFV2WrapperConsumerBase, Owna
         currentRaffle.vrfRequestEstimatedExpense = VRF_V2_WRAPPER.calculateRequestPrice(vrfCallbackGasLimit);
     }
 
-    function fulfillRandomWords(uint256 _requestId, uint256[] memory _randomWords) internal override {
-        require(raffles[currentRaffleIndex].vrfRequestEstimatedExpense != 0, "VRFNotRequested: VRF has not been requested");
-        require(raffles[currentRaffleIndex].vrfRequestId == _requestId, "VRFRequestIdMisMatch: RequestId does not match raffle requestId");
-        require(raffles[currentRaffleIndex].randomNumber == 0, "randomNumber already set");
-        raffles[currentRaffleIndex].randomNumber = _randomWords[0];
-        currentRaffleIndex += 1;
+    ////////////////////////////
+    ////////////////////////////
+    ////// VIEW FUNCTIONS //////
+    ////////////////////////////
+    ////////////////////////////
+
+    /// @notice get current raffle details
+    /// @param raffleIndex index of raffle
+    /// @return raffle details
+    function getRaffle(uint256 raffleIndex) external view returns (Raffle memory) {
+        return raffles[raffleIndex];
     }
 
-    function getWinningTicket(uint256 expandedRandomNumber, uint256 ticketsClaimed, uint256[] memory drawnWinners, uint256 upperbound) internal pure returns (uint256) {
-        // cannot define a mapping within a function so we use an array to keep track of drawn winners instead of a hash map
-        // terrible time complexity, but it's fine since it's a view function
-        uint256 winningTicket = expandedRandomNumber % ticketsClaimed;
-
-        for (uint256 i = 0; i < ticketsClaimed; i++) {
-            if (drawnWinners.has(winningTicket, upperbound)) {
-                winningTicket = (winningTicket + 1) % ticketsClaimed;
-            } else {
-                break;
-            }
-        }
-        return winningTicket;
+    /// @notice get an array of ticket numbers that a MyMetaShark NFT token has
+    /// @param sharkTokenId token id of MyMetaShark NFT
+    /// @param raffleIndex index of raffle
+    /// @return array of ticket numbers that a MyMetaShark NFT token has
+    function getTickets(uint256 sharkTokenId, uint256 raffleIndex) external view returns (uint256[] memory) {
+        return sharkTokenIdToRaffleTicketNumbers[sharkTokenId][raffleIndex];
     }
 
+    /// @notice get an array of ticket numbers that has won the raffle of index raffleIndex
+    /// @param raffleIndex index of raffle
+    /// @return array of ticket numbers that has won the raffle of index raffleIndex
     function getRaffleWinners(uint256 raffleIndex) external view returns (uint256[] memory) {
         require(raffles.length > raffleIndex, "InvalidRaffleIndex: Raffle does not exist");
         require(raffles[raffleIndex].randomNumber != 0, "RaffleNotConcluded: Raffle has not been concluded");
@@ -194,5 +204,57 @@ contract MyMetaSharkRaffle is IMyMetaSharkRaffle, VRFV2WrapperConsumerBase, Owna
             }
         }
         return winners;
+    }
+
+    ////////////////////////////
+    ////////////////////////////
+    //// INTERNAL FUNCTIONS ////
+    ////////////////////////////
+    ////////////////////////////
+
+    /// @notice claim ticket for MyMetaShark NFT token
+    /// @param sharkTokenId MyMetaShark NFT token id
+    function _claimTicket(uint256 sharkTokenId) internal {
+        Raffle storage currentRaffle = raffles[currentRaffleIndex];
+        uint256 ticketNumber = currentRaffle.ticketsClaimed;
+        sharkTokenIdToRaffleTicketNumbers[sharkTokenId][currentRaffleIndex].push(ticketNumber);
+        emit TicketClaimed(sharkTokenId, currentRaffleIndex, ticketNumber);
+        currentRaffle.ticketsClaimed += 1;
+    }
+
+    /// @notice fulfill VRF request, set random number for current raffle, increment currentRaffleIndex
+    /// @param _requestId request id
+    /// @param _randomWords random words
+    function fulfillRandomWords(uint256 _requestId, uint256[] memory _randomWords) internal override {
+        require(raffles[currentRaffleIndex].vrfRequestEstimatedExpense != 0, "VRFNotRequested: VRF has not been requested");
+        require(raffles[currentRaffleIndex].vrfRequestId == _requestId, "VRFRequestIdMisMatch: RequestId does not match raffle requestId");
+        require(raffles[currentRaffleIndex].randomNumber == 0, "randomNumber already set");
+        raffles[currentRaffleIndex].randomNumber = _randomWords[0];
+        currentRaffleIndex += 1;
+    }
+
+    /// @notice get winning ticket number
+    /// @dev terrible time complexity, but it's fine since it's a view function
+    /// @dev if winning ticket has already been drawn, increment winning ticket by 1 until a winning ticket is found
+    /// @dev logic details in README.md
+    /// @param expandedRandomNumber expanded random number
+    /// @param ticketsClaimed number of tickets claimed
+    /// @param drawnWinners array of drawn winners
+    /// @param upperbound upperbound index of drawnWinners array
+    /// @return winning ticket number
+
+    function getWinningTicket(uint256 expandedRandomNumber, uint256 ticketsClaimed, uint256[] memory drawnWinners, uint256 upperbound) internal pure returns (uint256) {
+        // cannot define a mapping within a function so we use an array to keep track of drawn winners instead of a hash map
+        // terrible time complexity, but it's fine since it's a view function
+        uint256 winningTicket = expandedRandomNumber % ticketsClaimed;
+
+        for (uint256 i = 0; i < ticketsClaimed; i++) {
+            if (drawnWinners.has(winningTicket, upperbound)) {
+                winningTicket = (winningTicket + 1) % ticketsClaimed;
+            } else {
+                break;
+            }
+        }
+        return winningTicket;
     }
 }
