@@ -35,6 +35,10 @@ contract MyMetaSharkRaffle is IMyMetaSharkRaffle, VRFV2WrapperConsumerBase, Owna
     using Array for uint256[];
 
     event TicketClaimed(uint256 indexed sharkTokenId, uint256 indexed raffleIndex, uint256 ticketNumber);
+    event RaffleCreated(uint256 indexed raffleIndex, uint256 startTime, uint256 duration, uint256 ticketInterval, uint256 winnerCount);
+    event Explored(uint256 indexed sharkTokenId, uint256 indexed raffleIndex, uint256 timestamp);
+    event RaffleConcluded(uint256 indexed raffleIndex, uint256 randomNumber);
+
     struct Raffle {
         uint256 startTime;
         uint256 duration;
@@ -86,6 +90,7 @@ contract MyMetaSharkRaffle is IMyMetaSharkRaffle, VRFV2WrapperConsumerBase, Owna
             require(startTime > previousEnd, "InvalidStartTime: Must be after previous raffle end");
         }
         raffles.push(Raffle(startTime, duration, ticketInterval, winnerCount, 0, 0, 0, 0));
+        emit RaffleCreated(raffles.length - 1, startTime, duration, ticketInterval, winnerCount);
     }
 
     ////////////////////////////////
@@ -118,6 +123,7 @@ contract MyMetaSharkRaffle is IMyMetaSharkRaffle, VRFV2WrapperConsumerBase, Owna
             }
             // set exploration timestamp
             explorations[tokenIds[i]][currentRaffleIndex] = block.timestamp;
+            emit Explored(tokenIds[i], currentRaffleIndex, block.timestamp);
         }
     }
 
@@ -141,6 +147,7 @@ contract MyMetaSharkRaffle is IMyMetaSharkRaffle, VRFV2WrapperConsumerBase, Owna
             _claimTicket(tokenIds[i]);
             if (currentRaffle.ticketInterval + block.timestamp < currentRaffle.startTime + currentRaffle.duration) {
                 explorations[tokenIds[i]][currentRaffleIndex] = block.timestamp;
+                emit Explored(tokenIds[i], currentRaffleIndex, block.timestamp);
             } else {
                 explorations[tokenIds[i]][currentRaffleIndex] = 0;
             }
@@ -234,6 +241,7 @@ contract MyMetaSharkRaffle is IMyMetaSharkRaffle, VRFV2WrapperConsumerBase, Owna
         require(raffles[currentRaffleIndex].vrfRequestId == _requestId, "VRFRequestIdMisMatch: RequestId does not match raffle requestId");
         require(raffles[currentRaffleIndex].randomNumber == 0, "randomNumber already set");
         raffles[currentRaffleIndex].randomNumber = _randomWords[0];
+        emit RaffleConcluded(currentRaffleIndex, _randomWords[0]);
         currentRaffleIndex += 1;
     }
 
