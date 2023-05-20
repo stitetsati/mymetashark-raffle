@@ -28,7 +28,7 @@ All costs associated with deploying smart contracts to the Ethereum blockchain s
     - The tokenIds that have satisfied the aforementioned criteria will have one ticket attached to them, making them eligible for the lottery reward by the end of the raffle.
     - Allows the tokenIds to auto "explore" after claiming, if no error condition in 2.a. satisfies.
 
-    c. ```ConcludeCurrentRaffle()```
+    c. ```ConcludeCurrentRaffle()``` :white_check_mark:
 
     - Allows anyone to conclude a raffle round that has come to an end (current time >= raffle.startTime+duration)
     - Triggers a Chainlink's VRF for a random number (The developers are not responsible for refilling the $LINK tokens or any costs required to interact with Chainlink's VRF)
