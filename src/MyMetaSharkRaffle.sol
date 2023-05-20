@@ -15,6 +15,7 @@ interface IMyMetaSharkRaffle {
 }
 
 contract MyMetaSharkRaffle is IMyMetaSharkRaffle, Ownable {
+    event TicketClaimed(uint256 indexed sharkTokenId, uint256 indexed raffleIndex, uint256 ticketNumber);
     struct Raffle {
         uint256 startTime;
         uint256 duration;
@@ -74,7 +75,7 @@ contract MyMetaSharkRaffle is IMyMetaSharkRaffle, Ownable {
             if (previousExplorationTimestamp != 0) {
                 uint256 timeElapsed = block.timestamp - previousExplorationTimestamp;
                 if (timeElapsed >= currentRaffle.ticketInterval) {
-                    claimTicket(tokenIds[i]);
+                    _claimTicket(tokenIds[i]);
                 } else {
                     revert("AlreadyExplored: Token already explored and time elapsed has not reached ticket interval");
                 }
@@ -84,9 +85,35 @@ contract MyMetaSharkRaffle is IMyMetaSharkRaffle, Ownable {
         }
     }
 
-    function claimTicket(uint256 tokenId) internal {
+    function claimTicket(uint256[] calldata tokenIds) external {
+        require(raffles.length > 0, "NoRaffles: No raffles have been setup");
+        require(tokenIds.length > 0, "InvalidTokenIds: Must have at least one token id");
         Raffle storage currentRaffle = raffles[currentRaffleIndex];
-        sharkTokenIdToRaffleTicketNumbers[tokenId][currentRaffleIndex].push(currentRaffle.ticketsClaimed);
+        uint256 endTime = currentRaffle.startTime + currentRaffle.duration;
+        require(endTime > block.timestamp, "RaffleNotEnded: Raffle has ended");
+
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            require(IERC721(myMetaShark).ownerOf(tokenIds[i]) == msg.sender, "InvalidTokenOwner: Must own token");
+            uint256 previousExplorationTimestamp = explorations[tokenIds[i]][currentRaffleIndex];
+            require(previousExplorationTimestamp != 0, "NotExplored: Token has not been explored");
+            if (block.timestamp - previousExplorationTimestamp < currentRaffle.ticketInterval) {
+                // elapsed time insufficient, contine to the next tokenId
+                continue;
+            }
+            _claimTicket(tokenIds[i]);
+            if (currentRaffle.ticketInterval + block.timestamp < currentRaffle.startTime + currentRaffle.duration) {
+                explorations[tokenIds[i]][currentRaffleIndex] = block.timestamp;
+            } else {
+                explorations[tokenIds[i]][currentRaffleIndex] = 0;
+            }
+        }
+    }
+
+    function _claimTicket(uint256 tokenId) internal {
+        Raffle storage currentRaffle = raffles[currentRaffleIndex];
+        uint256 ticketNumber = currentRaffle.ticketsClaimed;
+        sharkTokenIdToRaffleTicketNumbers[tokenId][currentRaffleIndex].push(ticketNumber);
+        emit TicketClaimed(tokenId, currentRaffleIndex, ticketNumber);
         currentRaffle.ticketsClaimed += 1;
     }
 }

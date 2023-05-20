@@ -190,4 +190,129 @@ contract MyMetaSharkRaffleTest is Test {
         // raffle ticket count updated
         assertEq(raffleContract.getRaffle(raffleContract.currentRaffleIndex()).ticketsClaimed, 1);
     }
+
+    function testClaimReverts() external {
+        // no raffles
+        vm.expectRevert(bytes("NoRaffles: No raffles have been setup"));
+        raffleContract.claimTicket(new uint256[](0));
+
+        MyMetaSharkRaffle.Raffle memory raffle = setupRaffle();
+        // give empty array
+        vm.expectRevert(bytes("InvalidTokenIds: Must have at least one token id"));
+        raffleContract.claimTicket(new uint256[](0));
+
+        // give valid token but raffle has ended.
+        uint256[] memory tokenIds = new uint256[](1);
+        uint256 tokenId = 0;
+        tokenIds[0] = tokenId;
+        vm.warp(raffle.startTime + raffle.duration);
+        vm.expectRevert(bytes("RaffleNotEnded: Raffle has ended"));
+        raffleContract.claimTicket(tokenIds);
+
+        vm.warp(raffle.startTime);
+        vm.expectRevert(bytes("InvalidTokenOwner: Must own token"));
+        raffleContract.claimTicket(tokenIds);
+
+        vm.expectRevert(bytes("NotExplored: Token has not been explored"));
+        vm.prank(owner);
+        raffleContract.claimTicket(tokenIds);
+    }
+
+    function testClaimWithAutoExplore() external {
+        MyMetaSharkRaffle.Raffle memory raffle = setupRaffle();
+        uint256[] memory tokenIds = new uint256[](1);
+        uint256 tokenId = 0;
+        tokenIds[0] = tokenId;
+
+        vm.warp(raffle.startTime);
+        vm.startPrank(owner);
+        raffleContract.explore(tokenIds);
+        uint256[] memory tickets = raffleContract.getTickets(tokenId, raffleContract.currentRaffleIndex());
+        assertEq(tickets.length, 0);
+
+        // elapsed time insufficient for ticket claiming
+        vm.warp(raffle.startTime + raffle.ticketInterval - 1);
+        raffleContract.claimTicket(tokenIds);
+        tickets = raffleContract.getTickets(tokenId, raffleContract.currentRaffleIndex());
+        assertEq(tickets.length, 0);
+
+        // elapsed time sufficient for ticket claiming
+        vm.warp(raffle.startTime + raffle.ticketInterval + 1);
+        raffleContract.claimTicket(tokenIds);
+
+        // auto explore
+        assertEq(raffleContract.explorations(tokenId, raffleContract.currentRaffleIndex()), block.timestamp);
+        // tickets claimed
+        tickets = raffleContract.getTickets(tokenId, raffleContract.currentRaffleIndex());
+        assertEq(tickets.length, 1);
+        assertEq(tickets[0], 0);
+        assertEq(raffleContract.getRaffle(raffleContract.currentRaffleIndex()).ticketsClaimed, 1);
+        vm.stopPrank();
+    }
+
+    function testClaimWithoutAutoExplore() external {
+        MyMetaSharkRaffle.Raffle memory raffle = setupRaffle();
+        uint256[] memory tokenIds = new uint256[](1);
+        uint256 tokenId = 0;
+        tokenIds[0] = tokenId;
+
+        vm.warp(raffle.startTime);
+        vm.startPrank(owner);
+        raffleContract.explore(tokenIds);
+        vm.warp(raffle.startTime + raffle.duration - 1);
+        raffleContract.claimTicket(tokenIds);
+        uint256[] memory tickets = raffleContract.getTickets(tokenId, raffleContract.currentRaffleIndex());
+        // tickets claimed
+        tickets = raffleContract.getTickets(tokenId, raffleContract.currentRaffleIndex());
+        assertEq(tickets.length, 1);
+        assertEq(tickets[0], 0);
+        assertEq(raffleContract.getRaffle(raffleContract.currentRaffleIndex()).ticketsClaimed, 1);
+        // remaining time less than ticket interval, no auto explore
+        assertEq(raffleContract.explorations(tokenId, raffleContract.currentRaffleIndex()), 0);
+        vm.stopPrank();
+    }
+
+    function testClaimingMultipleTicketsWithAutoClaim() external {
+        MyMetaSharkRaffle.Raffle memory raffle = setupRaffle();
+        uint256[] memory tokenIds = new uint256[](1);
+        uint256 tokenId = 0;
+        tokenIds[0] = tokenId;
+        vm.warp(raffle.startTime);
+        vm.startPrank(owner);
+
+        uint256 ticketsToClaim = 10;
+        for (uint256 i = 0; i < ticketsToClaim; i++) {
+            raffleContract.explore(tokenIds);
+            vm.warp(block.timestamp + raffle.ticketInterval);
+        }
+        raffleContract.claimTicket(tokenIds);
+        uint256[] memory tickets = raffleContract.getTickets(tokenId, raffleContract.currentRaffleIndex());
+        assertEq(tickets.length, ticketsToClaim);
+        for (uint256 i = 0; i < ticketsToClaim; i++) {
+            assertEq(tickets[i], i);
+        }
+        assertEq(raffleContract.getRaffle(raffleContract.currentRaffleIndex()).ticketsClaimed, ticketsToClaim);
+    }
+
+    function testClaimingMultipleTicketsWithAutoExplore() external {
+        MyMetaSharkRaffle.Raffle memory raffle = setupRaffle();
+        uint256[] memory tokenIds = new uint256[](1);
+        uint256 tokenId = 0;
+        tokenIds[0] = tokenId;
+        vm.warp(raffle.startTime);
+        vm.startPrank(owner);
+
+        uint256 ticketsToClaim = 10;
+        raffleContract.explore(tokenIds);
+        for (uint256 i = 0; i < ticketsToClaim; i++) {
+            vm.warp(block.timestamp + raffle.ticketInterval);
+            raffleContract.claimTicket(tokenIds);
+        }
+        uint256[] memory tickets = raffleContract.getTickets(tokenId, raffleContract.currentRaffleIndex());
+        assertEq(tickets.length, ticketsToClaim);
+        for (uint256 i = 0; i < ticketsToClaim; i++) {
+            assertEq(tickets[i], i);
+        }
+        assertEq(raffleContract.getRaffle(raffleContract.currentRaffleIndex()).ticketsClaimed, ticketsToClaim);
+    }
 }
