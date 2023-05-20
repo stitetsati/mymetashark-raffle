@@ -62,7 +62,11 @@ contract MyMetaSharkRaffle is IMyMetaSharkRaffle, VRFV2WrapperConsumerBase, Owna
         myMetaShark = _myMetaShark;
     }
 
-    /// ADMIN FUNCTIONS
+    ///////////////////////////////
+    ///////////////////////////////
+    //////  ADMIN FUNCTIONS  //////
+    ///////////////////////////////
+    ///////////////////////////////
 
     /// @notice set up a new raffle
     /// @param startTime start time of the raffle
