@@ -40,20 +40,20 @@ All costs associated with deploying smart contracts to the Ethereum blockchain s
 
 - allows the API consumer to get each raffle round's data, including:
 
-    a. winning tokenIds & the holder addresses 
+    a. winning tokenIds & the holder addresses :white_check_mark:
 
-    b. number of tokenIds participated in each raffle
+    b. number of tokenIds participated in each raffle :white_check_mark:
 
-    c. number of tickets issued in each raffle
+    c. number of tickets issued in each raffle :white_check_mark:
 
-    d. number of distinct wallet addresses participated in each raffle (recorded at the time of contract interaction, subsequent effects of NFT transfers won't be included.)
+    d. number of distinct wallet addresses participated in each raffle (recorded at the time of contract interaction, subsequent effects of NFT transfers won't be included.) :white_check_mark:
 
 #### 2. Mymetashark TokenId Data  
 - allows the API consumer to get each mymetashark tokenId's records of interaction with the raffle smart contract, including: 
 
-    a. raffles in which this tokenId has participated
+    a. raffles in which this tokenId has participated :white_check_mark:
 
-    b. for each round of raffle this tokenId has particiapted in, the ticket numbers associated with this tokenId and ticket numbers (if any) that won the rewards
+    b. for each round of raffle this tokenId has particiapted in, the ticket numbers associated with this tokenId and ticket numbers (if any) that won the rewards :white_check_mark:
     
         
         
