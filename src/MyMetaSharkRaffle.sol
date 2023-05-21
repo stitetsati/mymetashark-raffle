@@ -38,6 +38,7 @@ contract MyMetaSharkRaffle is IMyMetaSharkRaffle, VRFV2WrapperConsumerBase, Owna
     event RaffleCreated(uint256 indexed raffleIndex, uint256 startTime, uint256 duration, uint256 ticketInterval, uint256 winnerCount);
     event Explored(uint256 indexed sharkTokenId, uint256 indexed raffleIndex, uint256 timestamp);
     event RaffleConcluded(uint256 indexed raffleIndex, uint256 randomNumber);
+    event RandomNumberRequested(uint256 indexed raffleIndex, uint256 vrfRequestId, uint256 vrfRequestEstimatedExpense);
 
     struct Raffle {
         uint256 startTime;
@@ -165,6 +166,7 @@ contract MyMetaSharkRaffle is IMyMetaSharkRaffle, VRFV2WrapperConsumerBase, Owna
 
         currentRaffle.vrfRequestId = requestRandomness(vrfCallbackGasLimit, 3, 1);
         currentRaffle.vrfRequestEstimatedExpense = VRF_V2_WRAPPER.calculateRequestPrice(vrfCallbackGasLimit);
+        emit RandomNumberRequested(currentRaffleIndex, currentRaffle.vrfRequestId, currentRaffle.vrfRequestEstimatedExpense);
     }
 
     ////////////////////////////
