@@ -57,6 +57,13 @@ All costs associated with deploying smart contracts to the Ethereum blockchain s
     
         
         
+# Deployments
+
+The MyMetaSharkRaffle contract has been deployed to the following networks
+
+- Goerli: [0x580a2f4e4eaa06335737acf7c038a16c6bcefc94](https://goerli.etherscan.io/address/0x580a2f4e4eaa06335737acf7c038a16c6bcefc94)
+
+- Mainnet: TBC
 # Documentation
 
 ## Randomness
